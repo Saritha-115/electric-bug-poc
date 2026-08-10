@@ -35,5 +35,7 @@ build/
 ### aws ###
 .aws-sam/
 samconfig.toml
+
+# Ignore environment secrets
 env.json
 
