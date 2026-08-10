@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 60
     MemorySize: 512
 
 Parameters:
@@ -19,11 +19,12 @@ Resources:
   RetailSyncApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: target/retailsync-api-0.0.1-SNAPSHOT.jar
+      CodeUri: ./
       Handler: com.aximly.retailsync_api.StreamLambdaHandler::handleRequest
       Runtime: java17
       Environment:
         Variables:
+          SPRING_PROFILES_ACTIVE: lambda
           CLOUD_DB_URL: !Ref CloudDbUrl
           CLOUD_DB_USER: !Ref CloudDbUser
           CLOUD_DB_PASSWORD: !Ref CloudDbPassword

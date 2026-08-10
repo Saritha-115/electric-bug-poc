@@ -26,6 +26,16 @@ public class SyncApplyController {
         return ResponseEntity.ok(mdbApplyService.applyPendingUpdates(dryRun));
     }
 
+    @PostMapping("/insert-layby-to-mdb/{laybyId}")
+    public ResponseEntity<?> insertLaybyToMdb(@PathVariable int laybyId,
+                                              @RequestParam(defaultValue = "true") boolean dryRun,
+                                              @RequestHeader("X-Apply-Secret") String secret) {
+        if (!secret.equals(applySecret)) {
+            return ResponseEntity.status(403).body("Forbidden");
+        }
+        return ResponseEntity.ok(mdbApplyService.insertLaybyToMdb(laybyId, dryRun));
+    }
+
     @PostMapping("/apply-pending-customer-updates")
     public ResponseEntity<?> applyPendingCustomerUpdates(
             @RequestHeader("X-Apply-Secret") String secret,

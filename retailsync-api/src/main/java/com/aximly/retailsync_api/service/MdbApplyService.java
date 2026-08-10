@@ -108,6 +108,83 @@ public class MdbApplyService {
         return results;
     }
 
+    public ApplyResult insertLaybyToMdb(int laybyId, boolean dryRun) {
+        // Fetch the layby row from cloud
+        String laybyDateStr, comments;
+        int customerId;
+        double totalInc;
+        boolean closed;
+
+        try (Connection cloudConn = cloudDataSource.getConnection();
+             PreparedStatement stmt = cloudConn.prepareStatement(
+                     "SELECT layby_date, customer_id, total_inc, closed, comments FROM layby WHERE layby_id = ?")) {
+            stmt.setInt(1, laybyId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return new ApplyResult(laybyId, false, false, "Layby not found in cloud");
+                }
+                laybyDateStr = rs.getTimestamp("layby_date").toString();
+                customerId = rs.getInt("customer_id");
+                totalInc = rs.getDouble("total_inc");
+                closed = rs.getBoolean("closed");
+                comments = rs.getString("comments");
+            }
+        } catch (SQLException e) {
+            return new ApplyResult(laybyId, false, false, "Cloud read failed: " + e.getMessage());
+        }
+
+        if (dryRun) {
+            return new ApplyResult(laybyId, closed, true, "DRY RUN — would insert layby " + laybyId);
+        }
+
+        synchronized (MdbAccessLock.LOCK) {
+            try {
+                ProcessBuilder pb = new ProcessBuilder(
+                        writeExePath,
+                        "layby-insert",
+                        mdbFilePath,
+                        String.valueOf(laybyId),
+                        laybyDateStr,
+                        String.valueOf(customerId),
+                        String.valueOf(totalInc),
+                        String.valueOf(closed),
+                        comments == null ? "" : comments,
+                        mdbPassword == null ? "" : mdbPassword
+                );
+                pb.redirectErrorStream(true);
+                Process process = pb.start();
+
+                StringBuilder output = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) output.append(line);
+                }
+                boolean finished = process.waitFor(30, TimeUnit.SECONDS);
+                if (!finished) {
+                    process.destroyForcibly();
+                    return new ApplyResult(laybyId, closed, false, "mdb insert timed out");
+                }
+
+                JsonNode json = mapper.readTree(output.toString());
+                boolean success = json.path("success").asBoolean(false);
+                String message = json.path("message").asText("Unknown result");
+
+                if (success && json.path("updated").asInt(0) > 0) {
+                    try (Connection cloudConn = cloudDataSource.getConnection();
+                         PreparedStatement clear = cloudConn.prepareStatement(
+                                 "UPDATE layby SET pending_mdb_sync = false WHERE layby_id = ?")) {
+                        clear.setInt(1, laybyId);
+                        clear.executeUpdate();
+                    }
+                }
+                return new ApplyResult(laybyId, closed, success, message);
+            } catch (Exception e) {
+                return new ApplyResult(laybyId, closed, false, "mdb insert failed: " + e.getMessage());
+            }
+        }
+    }
+
     public record CustomerApplyResult(int customerId, boolean success, String message) {}
 
     public List<CustomerApplyResult> applyPendingCustomerUpdates(boolean dryRun) {
