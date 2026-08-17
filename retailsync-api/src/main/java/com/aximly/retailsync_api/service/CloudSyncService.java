@@ -27,7 +27,7 @@ public class CloudSyncService {
     }
 
     // Runs every 10 minutes automatically
-    @Scheduled(fixedRate = 10 * 60 * 1000)
+    @Scheduled(fixedRate = 10 * 60 * 1000) // back to 10 minutes
     public void scheduledSync() {
         syncNow();
     }

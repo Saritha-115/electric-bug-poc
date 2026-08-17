@@ -34,3 +34,7 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+Outputs:
+  ProxyApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
