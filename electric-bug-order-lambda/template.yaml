@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 512
+
+Parameters:
+  CloudDbUrl:
+    Type: String
+  CloudDbUser:
+    Type: String
+  CloudDbPassword:
+    Type: String
+    NoEcho: true
+  ExternalApiFlag:
+    Type: String
+    Default: "false"
+  AaaPosBaseUrl:
+    Type: String
+    Default: ""
+  AaaPosApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+
+Resources:
+  OrderLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: com.aximly.electricbug.order.StreamLambdaHandler::handleRequest
+      Runtime: java21
+      Environment:
+        Variables:
+          SPRING_PROFILES_ACTIVE: lambda
+          CLOUD_DB_URL: !Ref CloudDbUrl
+          CLOUD_DB_USER: !Ref CloudDbUser
+          CLOUD_DB_PASSWORD: !Ref CloudDbPassword
+          EXTERNALAPIFLAG: !Ref ExternalApiFlag
+          AAAPOS_BASE_URL: !Ref AaaPosBaseUrl
+          AAAPOS_API_KEY: !Ref AaaPosApiKey
+      Events:
+        ProxyApi:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ProxyApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
