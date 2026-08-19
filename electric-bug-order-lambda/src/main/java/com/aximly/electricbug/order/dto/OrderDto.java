@@ -10,10 +10,13 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderDto {
-    private Integer laybyId;
-    private LocalDateTime laybyDate;
-    private Integer customerId;
-    private Double totalInc;
-    private Boolean closed;
+    private Integer orderId;
+    private Integer revision;
+    private LocalDateTime orderDate;
+    private LocalDateTime dueDate;
+    private Integer staffId;
+    private Integer supplierId;
+    private String orderSuffix;
     private String comments;
+    private Boolean archive;
 }

@@ -1,6 +1,7 @@
 package com.aximly.electricbug.order.dao.impl;
 
 import com.aximly.electricbug.order.dao.OrderDao;
+import com.aximly.electricbug.order.dto.LaybyOrderDto;
 import com.aximly.electricbug.order.dto.OrderDto;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,23 +27,39 @@ public class PostgresOrderDaoImpl implements OrderDao {
 
     @Override
     public List<OrderDto> getAllOrders() {
-        return queryLaybys("SELECT * FROM layby");
-    }
-
-    @Override
-    public List<OrderDto> getLaybyOrders() {
-        // in this schema, "layby orders" and "orders" are the same table —
-        // adjust this query if/when a separate non-layby "orders" table exists
-        return queryLaybys("SELECT * FROM layby WHERE closed = false");
-    }
-
-    private List<OrderDto> queryLaybys(String sql) {
         List<OrderDto> list = new ArrayList<>();
         try (Connection conn = cloudDataSource.getConnection();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+             ResultSet rs = stmt.executeQuery("SELECT * FROM orders")) {
             while (rs.next()) {
                 OrderDto dto = new OrderDto();
+                dto.setOrderId(rs.getInt("order_id"));
+                dto.setRevision((int) rs.getShort("revision"));
+                dto.setOrderDate(rs.getTimestamp("order_date") != null
+                        ? rs.getTimestamp("order_date").toLocalDateTime() : null);
+                dto.setDueDate(rs.getTimestamp("due_date") != null
+                        ? rs.getTimestamp("due_date").toLocalDateTime() : null);
+                dto.setStaffId(rs.getInt("staff_id"));
+                dto.setSupplierId(rs.getInt("supplier_id"));
+                dto.setOrderSuffix(rs.getString("order_suffix"));
+                dto.setComments(rs.getString("comments"));
+                dto.setArchive(rs.getBoolean("archive"));
+                list.add(dto);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to read orders from Postgres: " + e.getMessage(), e);
+        }
+        return list;
+    }
+
+    @Override
+    public List<LaybyOrderDto> getLaybyOrders() {
+        List<LaybyOrderDto> list = new ArrayList<>();
+        try (Connection conn = cloudDataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM layby")) {
+            while (rs.next()) {
+                LaybyOrderDto dto = new LaybyOrderDto();
                 dto.setLaybyId(rs.getInt("layby_id"));
                 dto.setLaybyDate(rs.getTimestamp("layby_date") != null
                         ? rs.getTimestamp("layby_date").toLocalDateTime() : null);
@@ -53,7 +70,7 @@ public class PostgresOrderDaoImpl implements OrderDao {
                 list.add(dto);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to read orders from Postgres: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to read layby orders from Postgres: " + e.getMessage(), e);
         }
         return list;
     }

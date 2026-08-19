@@ -1,6 +1,7 @@
 package com.aximly.electricbug.order.dao.impl;
 
 import com.aximly.electricbug.order.dao.OrderDao;
+import com.aximly.electricbug.order.dto.LaybyOrderDto;
 import com.aximly.electricbug.order.dto.OrderDto;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
@@ -31,12 +32,12 @@ public class AaaPosOrderDaoImpl implements OrderDao {
     }
 
     @Override
-    public List<OrderDto> getLaybyOrders() {
+    public List<LaybyOrderDto> getLaybyOrders() {
         // TODO: replace "/orders/layby" with the real AAAPOS endpoint once confirmed
         return aaaPosWebClient.get()
                 .uri("/orders/layby")
                 .retrieve()
-                .bodyToFlux(OrderDto.class)
+                .bodyToFlux(LaybyOrderDto.class)
                 .collectList()
                 .block();
     }

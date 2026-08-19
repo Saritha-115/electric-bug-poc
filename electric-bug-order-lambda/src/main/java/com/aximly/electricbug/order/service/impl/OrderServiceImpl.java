@@ -1,6 +1,7 @@
 package com.aximly.electricbug.order.service.impl;
 
 import com.aximly.electricbug.order.dao.OrderDao;
+import com.aximly.electricbug.order.dto.LaybyOrderDto;
 import com.aximly.electricbug.order.dto.OrderDto;
 import com.aximly.electricbug.order.service.OrderService;
 import org.springframework.stereotype.Service;
@@ -22,7 +23,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderDto> getLaybyOrders() {
+    public List<LaybyOrderDto> getLaybyOrders() {
         return orderDao.getLaybyOrders();
     }
 }
