@@ -35,10 +35,55 @@ public class CloudSyncService {
     // Public method — can be called on-demand (e.g. from a controller) OR by the scheduler above
     public void syncNow() {
         synchronized (MdbAccessLock.LOCK) {
+            syncOrders();
             syncStock();
             syncCustomers();
             syncLaybys();
             syncPayments();
+        }
+    }
+
+    private void syncOrders() {
+        String selectSql = "SELECT order_id, revision, order_date, due_date, staff_id, supplier_id, order_suffix, comments, archive FROM Orders";
+        String upsertSql = """
+        INSERT INTO orders (order_id, revision, order_date, due_date, staff_id, supplier_id, order_suffix, comments, archive, synced_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+        ON CONFLICT (order_id) DO UPDATE SET
+            revision = EXCLUDED.revision,
+            order_date = EXCLUDED.order_date,
+            due_date = EXCLUDED.due_date,
+            staff_id = EXCLUDED.staff_id,
+            supplier_id = EXCLUDED.supplier_id,
+            order_suffix = EXCLUDED.order_suffix,
+            comments = EXCLUDED.comments,
+            archive = EXCLUDED.archive,
+            synced_at = now()
+        """;
+
+        try (Connection mdbConn = getMdbConnection();
+             Connection cloudConn = cloudDataSource.getConnection();
+             Statement stmt = mdbConn.createStatement();
+             ResultSet rs = stmt.executeQuery(selectSql);
+             PreparedStatement ps = cloudConn.prepareStatement(upsertSql)) {
+
+            int count = 0;
+            while (rs.next()) {
+                ps.setInt(1, rs.getInt("order_id"));
+                ps.setInt(2, rs.getInt("revision"));
+                ps.setTimestamp(3, rs.getTimestamp("order_date"));
+                ps.setTimestamp(4, rs.getTimestamp("due_date"));
+                ps.setInt(5, rs.getInt("staff_id"));
+                ps.setInt(6, rs.getInt("supplier_id"));
+                ps.setString(7, rs.getString("order_suffix"));
+                ps.setString(8, rs.getString("comments"));
+                ps.setBoolean(9, rs.getBoolean("archive"));
+                ps.addBatch();
+                count++;
+            }
+            ps.executeBatch();
+            System.out.println("[CloudSyncService] Synced " + count + " order rows");
+        } catch (SQLException e) {
+            System.out.println("[CloudSyncService] Order sync failed: " + e.getMessage());
         }
     }
 

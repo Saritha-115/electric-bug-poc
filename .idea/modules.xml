@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/electric-bug-order-lambda/electric-bug-order-lambda.iml" filepath="$PROJECT_DIR$/electric-bug-order-lambda/electric-bug-order-lambda.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/electric-bug-poc.iml" filepath="$PROJECT_DIR$/.idea/electric-bug-poc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/retailsync-api/retailsync-api.iml" filepath="$PROJECT_DIR$/retailsync-api/retailsync-api.iml" />
+    </modules>
+  </component>
+</project>
